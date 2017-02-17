@@ -9,8 +9,8 @@ var server        = require('http').createServer(httpHandler),
 	send          = require('send'),
 	pending       = [],
 	bufferSockets = {},
-	launching_cmd = process.env['DEFAULT_MARKDOWN_BROWSER'];
-
+	launching_cmd = process.env['DEFAULT_OPEN_COMMAND'],
+  separator="########### Id-BODY-SEPARATOR ###########";
 // WARNING: By setting this environment variable, anyone on your network may
 // run arbitrary code in your browser and read arbitrary files in the working
 // directory of the open file!
@@ -72,7 +72,7 @@ function addSecurityHeaders(req, res, isIndexFile) {
 
 function forwardMarkdown(input) {
 	readBody(input, function(body){
-		body = JSON.parse(body);
+    body = parseBody(body);
 		markdown = md.render(body.body);
 		bufferId = body.id;
 		success = pushMarkdown(bufferId, 'newContent', markdown);
@@ -166,7 +166,7 @@ io.set('log level', 1);
 io.sockets.on('connection', function(sock){
 	var current = pending.pop();
 	if(current){
-		current = JSON.parse(current)
+    current = parseBody(current)
 		var assignmentSocketId = current.id;
 
 		var pendingBody = current.body;
@@ -194,3 +194,11 @@ function runBrowser() {
 }
 
 
+function parseBody(payload){
+  var payloadArray = payload.split(separator);
+  payloadArray[1] = payloadArray[1].replace(/\\n/g,'\n');
+  return {
+    id: payloadArray[0],
+    body: payloadArray[1]
+  };
+}
